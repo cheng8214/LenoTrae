@@ -80,13 +80,13 @@ export func all_accounts(): Array[Array[string]] {
     for ks to k {
         // 只认 "|token" 结尾的键（每个账号恰好一条 ✓）；base = "brand|user"
         if not strings.ends_with(k, "|token") { continue }
-        var base = strings.slice(k, 0, k.len() - 6)
+        var base = strings.slice(k, 0, (k.len() - 6) - 1)
         var brand = ""
         var user = ""
         // 第一个 "|" 切 brand / user（brand 是固定三个品牌名，不含 "|" ✓）
         int cut = strings.find(base, "|")
         if cut < 0 { continue }
-        brand = strings.slice(base, 0, cut)
+        brand = strings.slice(base, 0, cut - 1)
         user = strings.slice(base, cut + 1, base.len())
         var token = jsons.get_str(all, k, "")
         if token == "" { continue }
