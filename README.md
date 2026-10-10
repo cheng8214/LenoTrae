@@ -95,6 +95,18 @@ Aha 号、`（独立）` = 本工具给它的新号，切号即跟着换 ✓）�
   否则"程序没开着的那几天"日历会漏显示 ✓；
 - **签到失败也记**（`ok=0` + code）⇒ 日历画成暖色，⑥ 的失败重试因此**有据可查** ✓。
 
+### ⑨ 账号列表（`accounts.json`）—— 重登其它账号**不用重启**也会出现
+
+列表 = **在线扫描**（各品牌 `storage.json`）∪ **已保存**（`%APPDATA%\TraeSignLeno\accounts.json`，
+见 `trae_accounts.leno`）：客户端登出后账号仍留在列表里（token 是 15 天有效的 JWT ⇒ 不影响签到 ✓），
+在线账号每次扫描都把 token/region **幂等刷新**落盘（重登换了 token ⇒ 覆盖成最新 ✓）。
+
+> **2026-10-10 修复**：这段"扫描 ∪ 合并"原先只在**启动时**跑一次 ⇒ 在 Trae 客户端里**重新登录
+> 另一个账号**后，本工具的下拉框里看不到它，**必须关掉重开** ✗。现在窗口**重新获得焦点**时重扫一遍
+> （重新登录必然要切到 Trae 窗口 ⇒ 切回来就是 `WINDOW_FOCUS_GAINED` ✓）⇒ 新账号当场出现在下拉框里
+> （状态栏报「账号列表已刷新（新增 N 个）」✓）；选中账号按 `品牌|账号` 找回新下标 ⇒ 列表顺序变了也
+> 不会跳到别的账号 ✓；**列表没变就是空操作**（不重建控件、不刷状态栏、不联网 ✓）。
+
 ### ⑥b 定时自动签到（`settings.json` + `trae_auto.leno` 调度器）
 
 设置对话框（`trae_settings.leno`）里能改：**开关 · 触发时间（时:分）· 失败重试 · 关窗收托盘 ·
@@ -391,6 +403,7 @@ build\leno.exe trae_crypto.leno → trae_crypto fixture test passed   （exit=0 
 | `trae_core.leno` | ②③ **共享核心**（登录态读取 / 签到接口 / 日期助手）＋ **③b 9074 换设备号重试** —— CLI 与 GUI **共用同一份** ✓（JSON 取值直接用标准库 `jsons.get_str/get_obj/keys` ✓）|
 | `trae_history.leno` | ⑦ `history.json` 读写（扁平键 = `brand+username+日期`，值 = `ok+base+extra+code` ⇒ 按账号独立 ✓）|
 | `trae_devices.leno` | ⑧ `devices.json` 设备号存储（扁平键 = `brand+username`；`ensure/regenerate/remove` ⇒ **每账号独立** ✓）|
+| `trae_accounts.leno` | ⑨ `accounts.json` 账号列表持久化（在线扫描 ∪ 已保存 ⇒ 登出后仍可选、token 15 天内照签 ✓）|
 | `trae_gui.leno` | ④ GUI（`LenoSDL3`：窗口 / 徽标 / 账号下拉 / 积分 / 按钮 ＋ `Canvas` **自绘签到日历**）✓ |
 | `resource.toml` | 打包配置（`onefile = true` + `resources = ["images/**"]` ⇒ 图标随包内嵌；打包命令见上面「打包（单文件 exe）」✓）|
 | `test/test_core_and_history.leno` | 数据层自测（日历算法用**已知日期**锚定 ✓ ＋ 历史 round-trip ✓，无 SDL、无网络 ⇒ 快）|

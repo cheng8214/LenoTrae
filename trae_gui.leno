@@ -28,6 +28,7 @@ use SDL3.Font
 use SDL3.Window
 use SDL3.Canvas
 use SDL3.Button
+use SDL3.ComboBox                          // 重扫账号后要重建下拉框 ⇒ 函数参数需要它的类型名 ✓
 import Sys                                 // ★ 跨平台系统能力（数据目录等）★
 import dirs
 import "trae_core.leno" as core
@@ -159,6 +160,103 @@ func select_account(string brand, string user) {
     SEL_USER = user
     refresh_days()
     refresh_device_text()
+}
+
+// ==================== ⑨ 账号列表：扫描 / 合并 / 重建下拉框（**不用重启**就能看到新账号 ✓） ====================
+// 为什么抽成函数（2026-10-10 用户反馈）：原先"在线扫描 ∪ 已保存"这段只在 **main 里跑一次** ⇒ 在 Trae
+//   客户端里**重新登录另一个账号**后，本工具的下拉框里看不到它，**必须关掉重开** ✗。
+//   现在这段抽出来，窗口**重新获得焦点**时再跑一遍 —— 重新登录必然要切到 Trae 窗口，回到本窗口就是
+//   `WINDOW_FOCUS_GAINED` ✓ ⇒ 列表当场刷新，新账号立刻可选 ✓。
+var LAST_SCAN_REFRESHED = 0        // 最近一次扫描中"在线 token 与保存的不一致"的账号个数（启动提示用 ✓）
+
+// 在线（各品牌 storage.json）∪ 已保存（accounts.json）⇒ 合并列表（[brand, user, "true"/"saved"]）
+// 在线账号顺带**幂等落盘**（重新登录换了 token ⇒ 覆盖成最新 ✓，与⑨ 原有口径一致）
+func scan_accounts_merged(): Array[Array[string]] {
+    var online = core.scan_accounts()
+    var tp = core.today_parts()
+    var today = core.date_str(tp[0], tp[1], tp[2])
+    int n = 0
+    for online to a {
+        if a[2] != "true" { continue }              // 解不出 token 的不落盘（没有可保存的凭据 ✓）
+        var fa = core.load_account(a[0])
+        if fa.len() > 0 and fa[1] == a[1] {
+            if accs.get(a[0], a[1])[0] != fa[2] { n = n + 1 }
+            accs.save(a[0], a[1], fa[2], fa[3], today)   // upsert：保留其它账号 ✓
+        }
+    }
+    LAST_SCAN_REFRESHED = n
+    Array[Array[string]] merged = []
+    for online to a { merged.add(a) }
+    var saved_all = accs.all_accounts()
+    for saved_all to sa {
+        bool is_online = false
+        for merged to m {
+            if m[0] == sa[0] and m[1] == sa[1] { is_online = true }
+        }
+        if not is_online { merged.add([sa[0], sa[1], "saved"]) }   // "saved" = 非在线扫描来的（登出 ✓）
+    }
+    return merged
+}
+
+// 下拉框显示串（"品牌 / 账号"；非在线（已保存）加后缀 ✓）
+func acc_items(Array[Array[string]] list): Array[string] {
+    Array[string] items = []
+    for list to a {
+        var tag = if a[2] == "saved" then "（已保存）" else ""
+        items.add(a[0] + " / " + a[1] + tag)
+    }
+    return items
+}
+
+// 两个账号列表是否"同内容"（顺序 + 品牌/账号 + 在线标记一致）⇒ 一致就不必重建下拉框 ✓
+func same_accounts(Array[Array[string]] a, Array[Array[string]] b): bool {
+    if a.len() != b.len() { return false }
+    int i = 0
+    while i < a.len() {
+        if a[i][0] != b[i][0] or a[i][1] != b[i][1] { return false }
+        var na = if a[i][2] == "saved" then "saved" else "online"
+        var nb = if b[i][2] == "saved" then "saved" else "online"
+        if na != nb { return false }
+        i = i + 1
+    }
+    return true
+}
+
+// 重扫账号；**有变化**才重建下拉框（无变化 ⇒ 一点开销都不花在控件上 ✓）
+// 选中账号按 `brand|user` 找回新下标 ⇒ 列表顺序变了也不会"跳到别的账号" ✓
+// 返回"列表是否变了"（变了 ⇒ 状态栏给一句提示 ✓）
+func refresh_account_list(ComboBox cb): bool {
+    var merged = scan_accounts_merged()
+    if same_accounts(merged, BRANDS_AVAIL) { return false }
+    int added = merged.len() - BRANDS_AVAIL.len()
+    int keep = -1
+    int i = 0
+    while i < merged.len() {
+        if merged[i][0] == SEL_BRAND and merged[i][1] == SEL_USER { keep = i }
+        i = i + 1
+    }
+    string ob = SEL_BRAND
+    string ou = SEL_USER
+    BRANDS_AVAIL = merged
+    cb.set_items(acc_items(merged))
+    if merged.len() == 0 {
+        // 列表清空（正常流程走不到：accounts.json 只由本工具写；留着是为了不留"选中了不存在的账号"的假状态 ✓）
+        SEL_BRAND = ""
+        SEL_USER = ""
+        invalidate_status()
+        refresh_days()
+        refresh_device_text()
+        STATUS_TEXT = "账号列表已空（在 Trae 客户端登录后会自动出现 ✓）"
+        return true
+    }
+    cb.set_selected(if keep < 0 then 0 else keep)   // 触发 on_change ⇒ SEL_* / 日历 / 设备号同步 ✓
+    if keep >= 0 {
+        // 选中账号没变（只是列表变了）⇒ 上面的 on_change 不会联网重查；这里换一句"列表已刷新"的提示 ✓
+        var msg = "账号列表已刷新"
+        if added > 0 { msg = msg + "（新增 " + (added as string) + " 个）" }
+        STATUS_TEXT = msg + "，当前账号 " + ob + " / " + ou
+    }
+    return true
 }
 
 // 取某账号的登录凭据：**在线（storage.json）优先**；登出的账号回退到已保存的 token（⑨ ✓）
@@ -486,37 +584,10 @@ main() {
     // ⑨ 账号持久化（2026-09-28）：在线账号**落盘**（token/region，幂等刷新 ✓）⇒
     //   客户端登出后账号仍留在列表里（token 15 天有效，签到照常可用 ✓）。
     //   列表 = 在线扫描 ∪ 已保存（去重：同 brand|user 在线优先，用新鲜凭据 ✓）。
-    BRANDS_AVAIL = core.scan_accounts()
-    var tp0s = core.today_parts()
-    var today0 = core.date_str(tp0s[0], tp0s[1], tp0s[2])
-    int refreshed = 0                            // ⑨ 在线 token 与保存不一致的个数（启动状态栏提示用 ✓）
-    for BRANDS_AVAIL to a {
-        if a[2] != "true" { continue }              // 解不出 token 的不落盘（没有可保存的凭据 ✓）
-        var fa = core.load_account(a[0])
-        if fa.len() > 0 and fa[1] == a[1] {
-            if accs.get(a[0], a[1])[0] != fa[2] { refreshed = refreshed + 1 }
-            accs.save(a[0], a[1], fa[2], fa[3], today0)   // upsert：重登换了 token ⇒ 覆盖成最新 ✓
-        }
-    }
-    Array[Array[string]] merged = []
-    for BRANDS_AVAIL to a { merged.add(a) }
-    var saved_all = accs.all_accounts()
-    for saved_all to sa {
-        bool online = false
-        for merged to m {
-            if m[0] == sa[0] and m[1] == sa[1] { online = true }
-        }
-        if not online { merged.add([sa[0], sa[1], "saved"]) }   // "saved" = 非在线扫描来的（登出 ✓）
-    }
-    BRANDS_AVAIL = merged
-    Array[string] items = []
-    int i = 0
-    while i < BRANDS_AVAIL.len() {
-        var a = BRANDS_AVAIL[i]
-        var tag = if a[2] == "saved" then "（已保存）" else ""
-        items.add(a[0] + " / " + a[1] + tag)
-        i = i + 1
-    }
+    // ⚠ 这段逻辑现在也由 `refresh_account_list()` 复用（窗口重新获得焦点时重扫 ⇒ 重新登录账号**不用重启** ✓）
+    BRANDS_AVAIL = scan_accounts_merged()
+    int refreshed = LAST_SCAN_REFRESHED          // ⑨ 在线 token 与保存不一致的个数（启动状态栏提示用 ✓）
+    Array[string] items = acc_items(BRANDS_AVAIL)
     int pick_idx = 0
     if items.len() == 0 {
         items.add("（未找到登录态）")
@@ -835,6 +906,11 @@ main() {
                 }
                 return false
             }
+            // ⑨ 窗口**重新获得焦点** ⇒ 重扫账号列表（2026-10-10）
+            //   场景：在 Trae 客户端里重新登录/换登其它账号后切回本窗口 ⇒ 下拉框当场出现新账号，
+            //   不必关掉重开 ✓。只在列表**真变了**时才重建控件并写状态栏（没变 ⇒ 一行提示都不刷 ✓）。
+            //   ⚠ 与托盘菜单弹层的焦点往返无关地安全：`refresh_account_list` 无变化时是**空操作** ✓
+            if ev.isWindowFocusGained() { refresh_account_list(cbAcc) }
             if ev.isKeyDown() and ev.scancode() == Scancode.ESCAPE { return false }
             return true
         },
