@@ -12,7 +12,8 @@
 #                 只认 .ico；建议里面放多个尺寸（16/24/32/48/256），单尺寸会被系统缩放。
 #
 # 本应用资源只有 images/（trae_tray.leno 经 dirs.res_dir() 读托盘与菜单图标 ✓）；
-# 无控制台开关走命令行 `-p --no-console`（脚本里没有 _console(false)，不做运行期隐藏 ✓）。
+# 控制台版自动避开：main() 首行的 `_console(false)` 由打包时的语义分析检测到 ⇒ 自动选
+# 无控制台版 VM（win 专属 `-mwindows` 变体）；命令行 `-p --no-console` / `-p --console` 仍可显式覆盖 ✓。
 
 [pack]
 onefile   = true

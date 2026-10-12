@@ -563,6 +563,7 @@ func apply_view(Label badge, Label score, Label status, Label month, Label devl,
 }
 
 main() {
+    _console(false)
     var autoFrames = _env_or("TRAE_GUI_AUTO", "")
     if autoFrames != "" { AUTO_FRAMES = _int(autoFrames) }
     NO_NET = _env("TRAE_GUI_NO_NET") != null

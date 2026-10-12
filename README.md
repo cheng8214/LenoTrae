@@ -5,8 +5,8 @@
 > **只想直接用？** 到 [Releases](../../releases) 下载 `LenoTrae.exe` —— 单文件，
 > 图标 / 原生库 / 资源全内嵌，目标机器**不需要装 LenoLang**（也不需要装 SDL3），
 > 双击即用（首次运行会自动把依赖解包到用户缓存目录）。
-> 另外附 `--tray` 启动即隐藏到托盘；自己打包用 `leno.exe -p --no-console trae_gui.leno`
-> （脚本里没有 `_console(false)`，不加这个开关会弹黑框）。
+> 另外附 `--tray` 启动即隐藏到托盘；自己打包用 `leno.exe -p trae_gui.leno`
+> （`main()` 里有 `_console(false)` ⇒ 打包自动选无控制台版 VM，不用再加 `--no-console`）。
 
 ## 进度
 
@@ -67,8 +67,9 @@ build\leno.exe -p --onefile --no-console "leno_gui\应用\Trae签到\trae_gui.le
 
 - 资源由本目录的 `resource.toml` 声明（`onefile = true` + `resources = ["images/**"]`）⇒ 8 张托盘/菜单
   图标随包内嵌；没设 `icon` ⇒ 产物用 VM 默认图标（要换再往 `resource.toml` 加 `icon = "xxx.ico"`，只认 `.ico` ✓）。
-- **`--no-console` 必加**：脚本里没有 `_console(false)`，不加就打成控制台版（双击弹黑框 ✗）；PE 子系统
-  打包后定型、改不了 ⇒ 只能重打（想省掉这个开关，就把 `_console(false)` 写进 `main()`，与 pvz 等应用同款 ✓）。
+- **控制台版自动避开**：`main()` 首行就是 `_console(false)`，打包时语义分析自动检测到 ⇒ 直接选无控制台版
+  VM（双击不弹黑框 ✓），无需再手动加 `--no-console`（与 pvz 等应用同款 ✓）。检测只认字面量
+  `false`/`0`，且 PE 子系统打包后定型、改不了 ⇒ 拿不准时显式 `--no-console` 覆盖更稳。
 - 运行期：首次运行解包到 `%LOCALAPPDATA%\trae_gui\pack\<hash16>\`（`dirs.res_dir()` 指这里；`script_dir()`
   仍 = exe 所在目录 ⇒ 用户数据全在 `%APPDATA%\TraeSignLeno\` 不动 ✓）；之后启动走**哨兵快路径**
   （stderr 无输出 = 零写盘 ✓）；hash 只由**资源段**算 ⇒ 只改脚本重打包不会让解包缓存失效 ✓。
