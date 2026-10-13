@@ -132,7 +132,7 @@ export func traeTrayInit(Window win, func():void onClaim, func():void onSettings
     if not SDL3.interceptTrayClick() { print("[tray] 托盘点击拦截不可用（非 Windows?）\n") }
 
     // 自绘菜单（非模态 ⇒ 菜单开着时界面照常 ✓）
-    _pm = SDL3.createPopMenu({fontSize: 14.0})
+    _pm = SDL3.createPopMenu({font_size: 14.0})
     if not _pm.ok() { print("[tray] 自绘菜单创建失败\n"); _inited = false; return false }
     _hasMenu = true
     _pm.addItem("隐藏窗口", _ip("eye_off.png"), func() { _actToggle = true })            // _MI_TOGGLE

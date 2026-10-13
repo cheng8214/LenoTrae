@@ -199,12 +199,12 @@ bool _obsAuto = false
 // ⚠ 开关一律"**标签 + 纯开关**"两段式（`text:""`）：`Toggle` 的文字画在**开关右侧**、且控件宽度
 //   不被布局改（`set_size` 是空实现）⇒ 文字一长就被窗口右缘裁掉 ✗（实测截图踩过，
 //   与 `控件/设置面板/settings.leno` 的写法一致 ✓）
-func _row(): HBox { return SDL3.createHBox({x:0, y:0, w:1, h:30, padX:0, padY:0, spacing:8}) }
+func _row(): HBox { return SDL3.createHBox({x:0, y:0, w:1, h:30, pad_x:0, pad_y:0, spacing:8}) }
 
 func settingsDialogMount(Window dlg, Dict[string, string] d, func():void onSaved) {
     float dlgW = 460.0
     float dlgH = 360.0                                  // ★ 多了一行"开机自启动" ⇒ 320 → 360 (2026-10-03)
-    VBox root = SDL3.createVBox({x:0, y:0, w:dlgW, h:dlgH, padX:30, padY:16, spacing:8})
+    VBox root = SDL3.createVBox({x:0, y:0, w:dlgW, h:dlgH, pad_x:30, pad_y:16, spacing:8})
     dlg.setRoot(root)
 
     root.add(SDL3.dialogLabel("设置 · 定时自动签到 / 开机自启动", 16), {grow:0, shrink:0, align:1})
