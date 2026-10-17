@@ -27,6 +27,7 @@ import "trae_settings.leno" as cfg
 import files
 import dirs
 import rands
+import "Log" as log      // 2026-10-17：日志追加收编（raw 模式，行格式不变）
 use SDL3.Window
 
 // 退避表（分钟；档位封顶到最后一档 ✓）
@@ -280,10 +281,11 @@ export func autoLogResult(string who, Array[string] r) {
         + " | phase=" + _phase
     if line == _last_log { return }
     _last_log = line
-    var f = files.open(p, "a")
-    if f == null { return }
-    f.writeln(line)
-    f.close()
+    // 追加动作收编到 LenoLog.raw()：不套时间戳/等级（这行本身已带时间与字段，
+    //   且可能被外部脚本按 `|` 解析）；写失败由模块吞掉，不影响签到的结果判定
+    var lg = log.create("trae-auto", 20)
+    log.addFile(lg, p)
+    log.raw(lg, line)
 }
 
 // ==================== 无头自检（`TRAE_AUTO_SELFTEST=1` ✓）====================
