@@ -66,14 +66,12 @@ export func get(string brand, string user): string {
 
 // 已分配的**全部**设备号（"新号不许与别人重复"要靠它 ✓）
 export func used_ids(): Array[string] {
-    Array[string] out = []
+    // ★ 2026-11-09：改用 `map` + `filter` 链（原来是"空数组 + 循环 + 局部变量 + if + add"）。
+    //   先取值（map）、再丢空串（filter）—— 两步都是无状态转换 ⇒ 与原来等价 ✓
     var all = load_all()
-    var ks = jsons.keys(all)
-    for ks to k {
-        var v = jsons.get_str(all, k, "")
-        if v != "" { out.add(v) }
-    }
-    return out
+    return jsons.keys(all)
+        .map(func(string k) { return jsons.get_str(all, k, "") })
+        .filter(func(string v) { return v != "" })
 }
 
 func in_arr(Array[string] a, string v): bool {
