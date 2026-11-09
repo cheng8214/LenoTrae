@@ -387,9 +387,9 @@ export func days_in_month(int y, int m): int {
     if m == 4 or m == 6 or m == 9 or m == 11 { return 30 }
     return 31
 }
-// ★ 2026-11-09：改用 `strings.pad_left`（标准库原语）—— 这段实现原本在四个文件里
+// ★ 2026-11-09：改用 `strings.pad_start`（标准库原语）—— 这段实现原本在四个文件里
 //   逐字相同（本文件 + LenoMusic 的 kugou_core/netease_core/songrow）✓
-export func pad2(int n): string { return strings.pad_left(_str(n), 2, "0") }
+export func pad2(int n): string { return strings.pad_start(_str(n), 2, "0") }
 export func date_str(int y, int m, int d): string {
     return (y as string) + "-" + pad2(m) + "-" + pad2(d)
 }
