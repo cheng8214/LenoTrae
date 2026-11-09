@@ -26,6 +26,7 @@
 //
 // 设备号：⑧ `trae_devices.leno` 给每个账号分配**独立**设备号并落盘（`%APPDATA%\TraeSignLeno\devices.json`）
 //   —— 登录态里的 Aha 号是**机器级**的，多账号共用会让第二个账号签到拿 `9095` ✗（本机实测 ✓）。
+import jsons               // ★ 2026-11-09：emit_json / list 的字符串字段要 jsons.encode 转义
 import "trae_core.leno" as core
 import "trae_devices.leno" as dev
 
@@ -48,14 +49,21 @@ func persist_dc(string src, string brand, string user, string dc): bool {
 }
 
 func emit_json(string brand, string username, string ok, string code, string checked, string base, string extra, string msg) {
+    // ★ 2026-11-09：**字符串字段必须转义**。原来直接 `"\"brand\":\"" + brand + "\""` 拼，
+    //   brand / username / msg 里只要出现 `"`、`\` 或换行，输出的就是**坏 JSON** ——
+    //   调用方（脚本 / 自动化）解析会直接失败，而且**不会报错**，只是静默拿不到数据。
+    //   用户名尤其危险：昵称里带引号不算罕见。
+    //   · 用 `jsons.encode(s)` 生成**带引号且已转义**的字符串字面量（`"abc"` / `"a\"b"`）。
+    //   · `ok` / `code` / `checked` / `base` / `extra` 是调用方传进来的**预格式化 JSON 片段**
+    //     （"true" / "0" / "null"），不是字符串值 ⇒ 原样嵌，不能加引号也不能 encode。
     print("{\"success\":" + ok
         + ",\"code\":" + code
         + ",\"checked_in\":" + checked
-        + ",\"brand\":\"" + brand + "\""
-        + ",\"username\":\"" + username + "\""
+        + ",\"brand\":" + jsons.encode(brand)
+        + ",\"username\":" + jsons.encode(username)
         + ",\"base\":" + base
         + ",\"extra\":" + extra
-        + ",\"message\":\"" + msg + "\"}\n")
+        + ",\"message\":" + jsons.encode(msg) + "}\n")
 }
 
 main() {
@@ -84,7 +92,10 @@ main() {
             int n = 0
             for all to row {
                 if n > 0 { print(",") }
-                print("{\"brand\":\"" + row[0] + "\",\"username\":\"" + row[1] + "\",\"hasToken\":" + row[2] + "}")
+                // ★ 2026-11-09：同上，brand/username 必须转义（原来是直接拼引号）
+                print("{\"brand\":" + jsons.encode(row[0])
+                    + ",\"username\":" + jsons.encode(row[1])
+                    + ",\"hasToken\":" + row[2] + "}")
                 n = n + 1
             }
             print("]}\n")
