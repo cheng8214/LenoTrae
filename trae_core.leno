@@ -12,7 +12,7 @@ import dirs
 import Sys
 import times
 import rands
-import "web_net" as net
+import "WebNet" as net
 use net.(HttpClient, Response)
 import "trae_crypto.leno" as crypt
 
