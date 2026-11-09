@@ -153,13 +153,19 @@ export func autoStatusText(): string {
     if not _enabled { return "自动签到 已关闭" }
     var t = "自动签到 已开 " + core.pad2(_hour) + ":" + core.pad2(_min)
     if _jitter > 0 { t = t + "(+" + (_jitter as string) + "s)" }   // 当天抖动：真实触发点是这个（避免"为什么 00:06 才签"的困惑 ✓）
-    if _phase == "done" { return t + " · 今日已完成" }
-    if _phase == "manual" { return t + " · 今日已手动签到（不再自动重试）" }
-    if _phase == "failed" { return t + " · 已关闭重试，今日不再尝试" }
-    if _phase == "given_up" { return t + " · 今日已放弃（23:00 后）" }
-    if _phase == "skipped" { return t + " · 未选择账号/离线，已跳过今日" }
-    if _retry_at >= 0 { return t + " · 下次重试 " + _sec_text(_retry_at) }
-    return t + " · 到点自动签到"
+    // ★ 2026-11-09：5 个 `_phase ==` 平铺改成 `switch` —— 阶段取值一目了然。
+    //   `default` 里保留原来的"有排期就显示下次重试、否则显示到点签到" ✓
+    switch _phase {
+        case "done" { return t + " · 今日已完成" }
+        case "manual" { return t + " · 今日已手动签到（不再自动重试）" }
+        case "failed" { return t + " · 已关闭重试，今日不再尝试" }
+        case "given_up" { return t + " · 今日已放弃（23:00 后）" }
+        case "skipped" { return t + " · 未选择账号/离线，已跳过今日" }
+        default {
+            if _retry_at >= 0 { return t + " · 下次重试 " + _sec_text(_retry_at) }
+            return t + " · 到点自动签到"
+        }
+    }
 }
 
 // ==================== 状态机 ====================
