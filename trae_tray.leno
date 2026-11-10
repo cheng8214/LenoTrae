@@ -77,7 +77,10 @@ int  _sfStep = 0
 int  _sfDeadline = 0
 int  _sfFail = 0
 
-func _ip(string n): string { return _imgDir + "/" + n }
+// ★ 2026-11-10（§5.4）：别手拼分隔符 —— 本文件第 115 行给 `_imgDir` 赋值时用的就是
+//   `dirs.join(...)`，这里却写死 "/"，Windows 下会得到 `...\images/xx.png` 这种混合路径
+//   （多数 API 能忍，但日志/报错里难看，且和 _imgDir 自己的形状不一致）。
+func _ip(string n): string { return dirs.join(_imgDir, n) }
 
 // ===== 进程路径（自启项要写命令行 ⇒ exe 路径来自 LenoSys ✓）=====
 //   原先用 `Win32.exePath()`（仅 Windows ✗）⇒ 现在 `Sys.exePath()`（Win/Linux 都有 ✓）

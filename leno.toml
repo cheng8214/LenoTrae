@@ -1,0 +1,20 @@
+# leno.toml — LenoTrae 的包配置
+#
+# 只声明**运行时模块包的版本要求**（[requires]）：
+#   模块由 LenoLang 发行包的 leno_module/ 提供，编译器在 `import` 时校验版本。
+#   ⇒ 用旧运行时会直接报「模块包 'LenoSDL3' 版本 x 不满足项目要求」，
+#     而不是等到 `Table.source_row` 这类调用点才报「没有方法」（2026-11-10 补，§5.3）。
+
+[package]
+name = "LenoTrae"
+version = "0.1.0"
+
+[requires]
+# GUI / 窗口 / 事件（含 GUI 控件的 source_row 等新接口）
+LenoSDL3   = ">=0.1.1"
+# HTTPS 客户端（登录 / 会话）
+LenoWeb    = ">=1.0.0"
+# 摘要与随机（token / 临时文件命名）
+LenoCrypto = ">=1.1.0"
+# 分级日志（实例式 logger）
+LenoLog    = ">=0.1.0"
